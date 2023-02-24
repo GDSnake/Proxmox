@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-
-# Copyright (c) 2021-2023 tteck
-# Author: tteck (tteckster)
-# License: MIT
-# https://github.com/tteck/Proxmox/raw/main/LICENSE
-
 function header_info {
 clear
 cat <<"EOF"
@@ -34,8 +28,7 @@ while true; do
   esac
 done
 clear
-exclude_container="$@"
-containers=$(pct list | tail -n +2 | cut -f1 -d' ' | grep -vE "^($exclude_container)$")
+containers=$(pct list | tail -n +2 | cut -f1 -d' ')
 function update_container() {
   container=$1
   header_info
@@ -50,10 +43,16 @@ function update_container() {
   esac
 }
 header_info
+read -p "Skip stopped containers? [y/N]" -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  skip=no
+else
+  skip=yes
+fi
 for container in $containers; do
   status=$(pct status $container)
-  template=$(pct config $container | grep -q "template:" && echo "true" || echo "false")
-   if [ "$template" == "false" ] && [ "$status" == "status: stopped" ]; then
+  if [ "$skip" == "no" ] && [ "$status" == "status: stopped" ]; then
       echo -e "${BL}[Info]${GN} Starting${BL} $container ${CL} \n"
       pct start $container
       echo -e "${BL}[Info]${GN} Waiting For${BL} $container${CL}${GN} To Start ${CL} \n"
